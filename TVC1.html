@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>TVC1</title>
+		<style>
+			canvas {
+				border: 1px solid black;
+			}
+			body{
+				width: 500px;
+				margin: auto;
+			}
+		</style>
+		<script src="Sprite.js"></script>
+		<script src="Background.js"></script>
+		<script src="Bullet.js"></script>
+		<script src="Player.js"></script>
+		<script src="Enemy1.js"></script>
+		<script src="Enemy2.js"></script>
+		<script src="Boss.js"></script>
+		<script src="PowerUp.js"></script>
+		<script src="Score.js"></script>
+		<script src="Spawner.js"></script>
+	</head>
+	<body>
+	<h1>Shoot 'Em Up</h1>
+	<canvas width="600" height="800">
+		Seu navegador não tem suporte ao canvas!
+		Atualize seu navegador.
+	</canvas>
+	<script>
+		var tela = document.getElementsByTagName("canvas")[0];
+		var ctx = tela.getContext("2d");
+		var fps = 60;
+		var dt = 1/fps;
+
+		var limitTop = 0;
+		var limitBottom = 800;
+		var limitLeft = 0;
+		var limitRight = 600;
+
+		var background;
+		var player;
+		var spawner;
+		var bullets;
+		var enemies;
+		var objects;
+		var score;
+		
+		restart();
+
+		function restart(){
+			delete background;
+			delete player;
+			delete spawner;
+			delete bullets;
+			delete enemies;
+			background = new Background();
+			player = new Player();
+			spawner = new Spawner();
+			score = new Score(5, 60);
+			bullets = [];
+			enemies = [];
+			objects = [];
+		}
+
+		function checkRestart(){
+			if(player.vidas < 0){
+				restart();
+				return true;
+			}
+			return false;
+		}
+
+		function passo(){
+
+			moverObjetos(background);
+			moverObjetos(player);
+			moverObjetos(enemies);
+			moverObjetos(objects);
+					
+			restricoesObjetos(background);
+			restricoesObjetos(player);
+			restricoesObjetos(enemies);
+			restricoesObjetos(objects);
+
+ 			ctx.clearRect(0,0, tela.width, tela.height);	
+
+ 			desenharObjetos(background);
+ 			desenharObjetos(objects);
+ 			desenharObjetos(player);
+			desenharObjetos(enemies);
+			desenharObjetos(score);
+
+			for(var i in enemies){
+				if(player.colisao(enemies[i])){
+					player.damage();
+					if(checkRestart())
+						return;
+				}
+			}
+
+			for(var i = player.bullets.length-1; i >= 0; i--){
+				for(var j = enemies.length -1; j >= 0; j--){
+					if(player.bullets[i].colisao(enemies[j])){
+						enemies[j].damage();
+						player.bullets.splice(i, 1);
+						score.soma(1);
+						break;
+					}
+				}
+			}
+
+			for(var i in enemies){
+				for(var j = enemies[i].bullets.length -1; j >= 0; j--){
+					if(player.colisao(enemies[i].bullets[j])){
+						player.damage();
+						enemies[i].bullets.splice(j, 1);
+						if(checkRestart())
+							return;
+						break;
+					}
+				}
+			}
+
+			for(var i in objects){
+				if(player.colisao(objects[i])){
+					player.objeto(objects[i]);
+					objects.splice(i, 1);
+					score.soma(10);
+				}
+			}
+
+			if(enemies.length == 0){
+				spawner.spawn();
+			}
+
+		}
+
+		function desenharObjetos(obj){
+			if (obj.constructor == Array){
+				for(var i in obj){
+					obj[i].desenhar();
+				}
+			}
+			else obj.desenhar();
+		}
+
+		function moverObjetos(obj){
+			if (obj.constructor == Array){
+				for(var i in obj){
+					obj[i].mover();
+				}
+			}
+			else obj.mover();
+		}
+
+		function restricoesObjetos(obj){
+			if (obj.constructor == Array){
+				for(var i in obj){
+					obj[i].restricoes();
+					if(obj[i].invalido == true){
+						obj.splice(i, 1);
+					}
+				}
+			}
+			else obj.restricoes();
+		}
+
+		function teclaPressionada(e){
+			//console.log("Tecla Pressionada: " + e.keyCode);
+			switch(e.keyCode){
+				case 37:
+					e.preventDefault();
+					player.left = -1;					
+				break;
+				case 39:
+					e.preventDefault();
+					player.right = 1;					
+				break;
+				case 38:
+					e.preventDefault();
+					player.up = -1;					
+				break;
+				case 40:
+					e.preventDefault();
+					player.down = 1;					
+				break;
+
+			}
+
+		}
+
+		function teclaSolta(e){
+			//console.log("Tecla Solta: " + e.keyCode);
+			switch(e.keyCode){
+				case 37:
+					player.left = 0;
+					break;
+				case 39:
+					player.right = 0;
+					break;					
+				case 38:
+					player.up = 0;	
+					break;
+				case 40:
+					player.down = 0;
+					break;						
+				case 69:
+					player.atirar();
+					break;
+			}
+		}
+
+		setInterval(passo, 1000/fps);
+		addEventListener("keydown", teclaPressionada);
+		addEventListener("keyup", teclaSolta);
+
+	</script>
+	</body>
+</html>
+
+
+
+
+
+
